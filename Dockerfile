@@ -1,9 +1,9 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /telegram-interface
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "bot/main.py"]
+CMD ["python", "-m", "bot.main"]
