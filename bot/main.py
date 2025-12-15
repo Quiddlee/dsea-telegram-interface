@@ -13,7 +13,7 @@ from bot.keep_alive import keep_alive
 from parsing.main import (call_schedule_parser, class_schedule_parser, rating_list_parser, scholarship_list_parser,
                           session_schedule_parser, timetable_calendar_parser)
 
-TOKEN = config('TOKEN')
+TOKEN = config('TELEGRAM_BOT_TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
 logging.basicConfig(level=logging.INFO)
