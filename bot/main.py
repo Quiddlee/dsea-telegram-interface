@@ -59,8 +59,9 @@ def send_bot_menu(message):
     button7 = types.KeyboardButton('Стипендіальний список')
     button8 = types.KeyboardButton('Табель-календар')
     button9 = types.KeyboardButton('About')
+    button10 = types.KeyboardButton('AI Агент')
 
-    markup.add(button1, button2, button3, button4, button5, button6, button7, button8, button9)
+    markup.add(button1, button2, button3, button4, button5, button6, button7, button8, button9, button10)
 
     bot.send_message(
         message.chat.id,
@@ -184,8 +185,9 @@ def bot_message(message):
         button7 = types.KeyboardButton('Стипендіальний список')
         button8 = types.KeyboardButton('Табель-календар')
         button9 = types.KeyboardButton('About')
+        button10 = types.KeyboardButton('AI Агент')
 
-        markup.add(button1, button2, button3, button4, button5, button6, button7, button8, button9)
+        markup.add(button1, button2, button3, button4, button5, button6, button7, button8, button9, button10)
 
         bot.send_message(
             message.chat.id, '🔙 Назад', reply_markup=markup)
@@ -242,6 +244,14 @@ def bot_message(message):
 
     if file_text == 'About':
         bot.send_message(message.chat.id, ABOUT)
+
+# -----------------------------------------------------------------------------------
+
+    if file_text == 'AI Агент':
+        bot.send_message(
+            chat_id,
+            '🧠 Незабаром тут зʼявиться AI-агент, який допомагатиме з питаннями про академію. Слідкуйте за оновленнями!'
+        )
 
 # -----------------------------------------------------------------------------------
 
