@@ -1,4 +1,5 @@
 import logging
+import time
 from io import BytesIO
 
 import requests
@@ -440,4 +441,15 @@ def bot_message(message):
             bot.send_message(chat_id, f"⚠️ На жаль, виникла помилка: {str(e)}")
 
 
-bot.polling()
+if __name__ == "__main__":
+    keep_alive()
+
+    while True:
+        try:
+            bot.polling(non_stop=True, timeout=60, long_polling_timeout=50)
+        except requests.exceptions.ReadTimeout:
+            logger.warning("Telegram polling read timeout; retrying...")
+            continue
+        except Exception as e:
+            logger.error("Unexpected error in polling loop", exc_info=e)
+            time.sleep(5)
