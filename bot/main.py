@@ -15,6 +15,8 @@ from parsing.main import (call_schedule_parser, class_schedule_parser, rating_li
                           session_schedule_parser, timetable_calendar_parser)
 
 TOKEN = config('TELEGRAM_BOT_TOKEN')
+AI_CORE_URL = config('AI_CORE_URL', default=None)
+AI_CORE_INTERNAL_TOKEN = config('AI_CORE_INTERNAL_TOKEN', default=None)
 bot = telebot.TeleBot(TOKEN)
 
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 schedule_cache = {}
 session_cache = {}
+ai_agent_active = set()
 
 COURSE_LABELS = [
     "1 курс", "2 курс", "3 курс", "4 курс",
@@ -164,6 +167,28 @@ def bot_message(message):
 
 # -----------------------------------------------------------------------------------
 
+    def handle_ai_agent_query(msg):
+        if not AI_CORE_URL or not AI_CORE_INTERNAL_TOKEN:
+            send_ai_reply(
+                msg,
+                "⚙️ AI агент наразі не налаштований. Перевірте змінні AI_CORE_URL та AI_CORE_INTERNAL_TOKEN."
+            )
+            return
+
+        try:
+            telegram_id = msg.from_user.id
+            resp = requests.post(
+                f"{AI_CORE_URL.rstrip('/')}/agent/chat",
+                json={"message": msg.text, "telegramId": telegram_id},
+                headers={"x-ai-core-token": AI_CORE_INTERNAL_TOKEN},
+                timeout=20,
+            )
+            resp.raise_for_status()
+            send_ai_reply(msg, resp.text)
+        except Exception as e:
+            logger.error("AI agent request failed", exc_info=e)
+            send_ai_reply(msg, "⚠️ Не вдалося отримати відповідь від AI агента.")
+
     def go_to_website(msg, link):
         inline = types.InlineKeyboardMarkup()
         btn = types.InlineKeyboardButton(text=msg.text, url=link)
@@ -172,6 +197,20 @@ def bot_message(message):
         bot.send_message(msg.chat.id, "🔗 Посилання на ресурс:", reply_markup=inline)
 
 # -----------------------------------------------------------------------------------
+
+    def ai_back_only_markup():
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        markup.add(types.KeyboardButton('Назад'))
+        return markup
+
+    def send_ai_reply(msg, text):
+        bot.send_message(msg.chat.id, text, reply_markup=ai_back_only_markup())
+
+# -----------------------------------------------------------------------------------
+
+    if chat_id in ai_agent_active and file_text not in ['Назад', 'AI Агент']:
+        handle_ai_agent_query(message)
+        return
 
     if file_text == 'Назад':
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -191,6 +230,7 @@ def bot_message(message):
 
         bot.send_message(
             message.chat.id, '🔙 Назад', reply_markup=markup)
+        ai_agent_active.discard(chat_id)
 
 # -----------------------------------------------------------------------------------
 
@@ -248,9 +288,10 @@ def bot_message(message):
 # -----------------------------------------------------------------------------------
 
     if file_text == 'AI Агент':
-        bot.send_message(
-            chat_id,
-            '🧠 Незабаром тут зʼявиться AI-агент, який допомагатиме з питаннями про академію. Слідкуйте за оновленнями!'
+        ai_agent_active.add(chat_id)
+        send_ai_reply(
+            message,
+            '🧠 Я готовий допомогти. Напишіть питання про академію або навчання.'
         )
 
 # -----------------------------------------------------------------------------------
