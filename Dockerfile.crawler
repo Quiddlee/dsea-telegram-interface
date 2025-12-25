@@ -1,0 +1,18 @@
+FROM python:3.12-slim
+
+# Prevent Python from buffering stdout/stderr (important for docker logs)
+ENV PYTHONUNBUFFERED=1
+
+# Set working directory to match docker-compose working_dir
+WORKDIR /telegram-interface
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source
+COPY . .
+
+# Default command: run crawler entrypoint
+# We use -m so Python treats crawler as a package
+CMD ["python", "-m", "parsing.crawler.main"]

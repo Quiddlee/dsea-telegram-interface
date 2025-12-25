@@ -9,10 +9,10 @@ URL_CALL_SCHEDULE = 'http://www.dgma.donetsk.ua/13-09-22-rozklad-dzvinkiv.html'
 URL_CLASS_SCHEDULE = 'http://www.dgma.donetsk.ua/rozklad-dlya-dennogo-viddilennya.html'
 URL_SESSION_SCHEDULE = 'http://www.dgma.donetsk.ua/index.php?option=com_content&Itemid=1650&id=2819&lang=uk&layout=edit&view=article'
 URL_SCHOLARSHIP_LIST = 'http://www.dgma.donetsk.ua/stipendiya.html'
-URL_TIMETABLE_CALENDAR = 'http://www.dgma.donetsk.ua/tabel-kalendar-osvitnogo-protsesu-na-2023-2024-navchalniy-rik.html'
+URL_TIMETABLE_CALENDAR = 'http://www.dgma.donetsk.ua/studentu-tabel-kalendar-osvitnogo-protsesu-na-navchalniy-rik.html'
 
 
-def call_schedule_parser():
+def call_schedule_parser(return_raw: bool = False):
     request_call_schedule = requests.get(URL_CALL_SCHEDULE)
     soup = bs(request_call_schedule.text, 'html.parser')
 
@@ -25,12 +25,15 @@ def call_schedule_parser():
     text = [p.text for p in call_schedule_p]
     image_url = f"{DOMAIN}{call_schedule_image}"
 
-    return text, image_url, URL_CALL_SCHEDULE
+    data = (text, image_url, URL_CALL_SCHEDULE)
+    if return_raw:
+        return data, request_call_schedule.content, request_call_schedule.headers.get("Content-Type", "")
+    return data
 
 # -----------------------------------------------------------------------------------
 
 
-def class_schedule_parser():
+def class_schedule_parser(return_raw: bool = False):
     request_class_schedule = requests.get(URL_CLASS_SCHEDULE)
     soup = bs(request_class_schedule.text, 'html.parser')
 
@@ -49,12 +52,15 @@ def class_schedule_parser():
                 full_url = img_href
             class_schedule_images.append(full_url)
 
-    return class_schedule_h.text.strip(), class_schedule_images, URL_CLASS_SCHEDULE
+    data = (class_schedule_h.text.strip(), class_schedule_images, URL_CLASS_SCHEDULE)
+    if return_raw:
+        return data, request_class_schedule.content, request_class_schedule.headers.get("Content-Type", "")
+    return data
 
 # -----------------------------------------------------------------------------------
 
 
-def session_schedule_parser():
+def session_schedule_parser(return_raw: bool = False):
     session_request_schedule = requests.get(URL_SESSION_SCHEDULE)
     soup = bs(session_request_schedule.text, 'html.parser')
 
@@ -73,12 +79,15 @@ def session_schedule_parser():
                 full_url = img_href
             session_schedule_images.append(full_url)
 
-    return session_schedule_h.text.strip(), session_schedule_images, URL_SESSION_SCHEDULE
+    data = (session_schedule_h.text.strip(), session_schedule_images, URL_SESSION_SCHEDULE)
+    if return_raw:
+        return data, session_request_schedule.content, session_request_schedule.headers.get("Content-Type", "")
+    return data
 
 # -----------------------------------------------------------------------------------
 
 
-def rating_list_parser():
+def rating_list_parser(return_raw: bool = False):
     response = requests.get(URL_SCHOLARSHIP_LIST)
     soup = bs(response.text, 'html.parser')
 
@@ -98,12 +107,15 @@ def rating_list_parser():
 
         results.append((filename, encoded_url))
 
-    return results, URL_SCHOLARSHIP_LIST
+    data = (results, URL_SCHOLARSHIP_LIST)
+    if return_raw:
+        return data, response.content, response.headers.get("Content-Type", "")
+    return data
 
 # -----------------------------------------------------------------------------------
 
 
-def scholarship_list_parser():
+def scholarship_list_parser(return_raw: bool = False):
     response = requests.get(URL_SCHOLARSHIP_LIST)
     soup = bs(response.text, 'html.parser')
 
@@ -123,12 +135,15 @@ def scholarship_list_parser():
     encoded_path = urllib.parse.quote(parsed.path)
     encoded_url = f"{parsed.scheme}://{parsed.netloc}{encoded_path}"
 
-    return encoded_url, filename, link_text, URL_SCHOLARSHIP_LIST
+    data = (encoded_url, filename, link_text, URL_SCHOLARSHIP_LIST)
+    if return_raw:
+        return data, response.content, response.headers.get("Content-Type", "")
+    return data
 
 # -----------------------------------------------------------------------------------
 
 
-def timetable_calendar_parser():
+def timetable_calendar_parser(return_raw: bool = False):
     response = requests.get(URL_TIMETABLE_CALENDAR)
     soup = bs(response.text, 'html.parser')
 
@@ -144,4 +159,7 @@ def timetable_calendar_parser():
         full_url = urllib.parse.urljoin(DOMAIN, href)
         result.append((name, full_url))
 
-    return title, result, URL_TIMETABLE_CALENDAR
+    data = (title, result, URL_TIMETABLE_CALENDAR)
+    if return_raw:
+        return data, response.content, response.headers.get("Content-Type", "")
+    return data
