@@ -42,3 +42,62 @@ def get_call_schedule() -> str:
         row = cur.fetchone()
 
     return row[0] if row else "⚠️ This information is missing from the database!"
+
+
+def save_document_record(
+    *,
+    source_type: str,
+    source_id: str,
+    url: str | None,
+    title: str | None,
+    mime_type: str | None,
+    checksum: str,
+    status: str,
+    raw_path: str,
+    last_error: str | None,
+    parsed_at,
+) -> None:
+    conn = get_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO documents (
+                    source_type,
+                    source_id,
+                    url,
+                    title,
+                    mime_type,
+                    checksum,
+                    status,
+                    raw_path,
+                    last_error,
+                    parsed_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (source_type, source_id) DO UPDATE SET
+                    url = EXCLUDED.url,
+                    title = EXCLUDED.title,
+                    mime_type = EXCLUDED.mime_type,
+                    checksum = EXCLUDED.checksum,
+                    status = EXCLUDED.status,
+                    raw_path = EXCLUDED.raw_path,
+                    last_error = EXCLUDED.last_error,
+                    parsed_at = EXCLUDED.parsed_at,
+                    updated_at = NOW()
+                WHERE documents.checksum IS DISTINCT FROM EXCLUDED.checksum;
+                """,
+                (
+                    source_type,
+                    source_id,
+                    url,
+                    title,
+                    mime_type,
+                    checksum,
+                    status,
+                    raw_path,
+                    last_error,
+                    parsed_at,
+                ),
+            )

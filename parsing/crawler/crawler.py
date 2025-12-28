@@ -11,6 +11,7 @@ from typing import Any, Callable, Optional
 import requests
 
 from .. import main as parsing_main
+from bot.db import save_document_record
 
 logger = logging.getLogger("crawler")
 
@@ -142,6 +143,34 @@ def _save_artifact(
     return manifest
 
 
+def _save_document_record(
+    manifest: dict[str, Any],
+    *,
+    error: Optional[str],
+    dry_run: bool,
+) -> None:
+    if dry_run:
+        logger.info("Dry-run: skipping DB write for %s", manifest.get("source", {}).get("url"))
+        return
+
+    source = manifest.get("source", {})
+    status = "FAILED" if error else "PARSED"
+    parsed_at = datetime.now(timezone.utc)
+
+    save_document_record(
+        source_type=manifest.get("type"),
+        source_id=source.get("sourceId"),
+        url=source.get("url"),
+        title=manifest.get("title"),
+        mime_type=source.get("mimeType"),
+        checksum=manifest.get("checksum"),
+        status=status,
+        raw_path=manifest.get("rawPath"),
+        last_error=error,
+        parsed_at=parsed_at,
+    )
+
+
 def run_crawler(
     artifacts_dir: str,
     dry_run: bool = False,
@@ -183,6 +212,7 @@ def run_crawler(
                     dry_run=dry_run,
                 )
                 if manifest:
+                    _save_document_record(manifest, error=None, dry_run=dry_run)
                     results[name]["artifacts"].append(manifest)
 
             elif name in {"class_schedule", "session_schedule"}:
@@ -200,6 +230,7 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
+                        _save_document_record(manifest, error=None, dry_run=dry_run)
                         results[name]["artifacts"].append(manifest)
 
             elif name == "rating_list":
@@ -217,6 +248,7 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
+                        _save_document_record(manifest, error=None, dry_run=dry_run)
                         results[name]["artifacts"].append(manifest)
 
             elif name == "scholarship_list":
@@ -233,6 +265,7 @@ def run_crawler(
                     dry_run=dry_run,
                 )
                 if manifest:
+                    _save_document_record(manifest, error=None, dry_run=dry_run)
                     results[name]["artifacts"].append(manifest)
 
             elif name == "timetable_calendar":
@@ -250,6 +283,7 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
+                        _save_document_record(manifest, error=None, dry_run=dry_run)
                         results[name]["artifacts"].append(manifest)
         except Exception as exc:
             logger.exception("Parser failed | name=%s | error=%s", name, str(exc))
