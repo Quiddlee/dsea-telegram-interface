@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2.extras import Json
 from decouple import config
 
 DB_NAME = config('DB_NAME')
@@ -56,7 +57,7 @@ def save_document_record(
     raw_path: str,
     last_error: str | None,
     parsed_at,
-) -> None:
+) -> str | None:
     conn = get_connection()
 
     with conn:
@@ -86,7 +87,8 @@ def save_document_record(
                     last_error = EXCLUDED.last_error,
                     parsed_at = EXCLUDED.parsed_at,
                     updated_at = NOW()
-                WHERE documents.checksum IS DISTINCT FROM EXCLUDED.checksum;
+                WHERE documents.checksum IS DISTINCT FROM EXCLUDED.checksum
+                RETURNING id;
                 """,
                 (
                     source_type,
@@ -100,4 +102,18 @@ def save_document_record(
                     last_error,
                     parsed_at,
                 ),
+            )
+            row = cur.fetchone()
+
+    return row[0] if row else None
+
+
+def enqueue_chunk_document_job(document_id: str) -> None:
+    conn = get_connection()
+
+    with conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO pgboss.job (name, data) VALUES (%s, %s);",
+                ("JOB_CHUNK_DOCUMENT", Json({"documentId": document_id})),
             )

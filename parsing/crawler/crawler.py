@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional
 import requests
 
 from .. import main as parsing_main
-from bot.db import save_document_record
+from bot.db import enqueue_chunk_document_job, save_document_record
 
 logger = logging.getLogger("crawler")
 
@@ -148,16 +148,16 @@ def _save_document_record(
     *,
     error: Optional[str],
     dry_run: bool,
-) -> None:
+) -> Optional[str]:
     if dry_run:
         logger.info("Dry-run: skipping DB write for %s", manifest.get("source", {}).get("url"))
-        return
+        return None
 
     source = manifest.get("source", {})
     status = "FAILED" if error else "PARSED"
     parsed_at = datetime.now(timezone.utc)
 
-    save_document_record(
+    return save_document_record(
         source_type=manifest.get("type"),
         source_id=source.get("sourceId"),
         url=source.get("url"),
@@ -212,7 +212,9 @@ def run_crawler(
                     dry_run=dry_run,
                 )
                 if manifest:
-                    _save_document_record(manifest, error=None, dry_run=dry_run)
+                    document_id = _save_document_record(manifest, error=None, dry_run=dry_run)
+                    if document_id:
+                        enqueue_chunk_document_job(document_id)
                     results[name]["artifacts"].append(manifest)
 
             elif name in {"class_schedule", "session_schedule"}:
@@ -230,7 +232,9 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
-                        _save_document_record(manifest, error=None, dry_run=dry_run)
+                        document_id = _save_document_record(manifest, error=None, dry_run=dry_run)
+                        if document_id:
+                            enqueue_chunk_document_job(document_id)
                         results[name]["artifacts"].append(manifest)
 
             elif name == "rating_list":
@@ -248,7 +252,9 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
-                        _save_document_record(manifest, error=None, dry_run=dry_run)
+                        document_id = _save_document_record(manifest, error=None, dry_run=dry_run)
+                        if document_id:
+                            enqueue_chunk_document_job(document_id)
                         results[name]["artifacts"].append(manifest)
 
             elif name == "scholarship_list":
@@ -265,7 +271,9 @@ def run_crawler(
                     dry_run=dry_run,
                 )
                 if manifest:
-                    _save_document_record(manifest, error=None, dry_run=dry_run)
+                    document_id = _save_document_record(manifest, error=None, dry_run=dry_run)
+                    if document_id:
+                        enqueue_chunk_document_job(document_id)
                     results[name]["artifacts"].append(manifest)
 
             elif name == "timetable_calendar":
@@ -283,7 +291,9 @@ def run_crawler(
                         dry_run=dry_run,
                     )
                     if manifest:
-                        _save_document_record(manifest, error=None, dry_run=dry_run)
+                        document_id = _save_document_record(manifest, error=None, dry_run=dry_run)
+                        if document_id:
+                            enqueue_chunk_document_job(document_id)
                         results[name]["artifacts"].append(manifest)
         except Exception as exc:
             logger.exception("Parser failed | name=%s | error=%s", name, str(exc))
