@@ -11,7 +11,7 @@ from typing import Any, Callable, Optional
 import requests
 
 from .. import main as parsing_main
-from bot.db import enqueue_chunk_document_job, save_document_record
+from bot.db import enqueue_chunk_document_job, get_document_checksum, save_document_record
 
 logger = logging.getLogger("crawler")
 
@@ -106,6 +106,20 @@ def _save_artifact(
     raw_path = raw_dir / f"{doc_key}.{ext}"
     manifest_path = parsed_dir / f"{doc_key}.json"
 
+    checksum = _sha256_bytes(raw_bytes)
+    existing_checksum = None
+    try:
+        existing_checksum = get_document_checksum(
+            source_type=source_type,
+            source_id=normalized_url,
+        )
+    except Exception as exc:
+        logger.warning("Failed to lookup checksum in DB for %s: %s", source_url, exc)
+
+    if existing_checksum is not None and existing_checksum == checksum:
+        logger.info("Unchanged artifact skipped for %s (db checksum match)", source_url)
+        return None
+
     manifest = {
         "type": source_type,
         "version": 1,
@@ -116,18 +130,9 @@ def _save_artifact(
             "mimeType": effective_mime,
         },
         "rawPath": f"raw/{doc_key}.{ext}",
-        "checksum": _sha256_bytes(raw_bytes),
+        "checksum": checksum,
         "createdAt": datetime.now(timezone.utc).isoformat(),
     }
-
-    if manifest_path.exists():
-        try:
-            existing = json.loads(manifest_path.read_text(encoding="utf-8"))
-            if existing.get("checksum") == manifest["checksum"]:
-                logger.info("Unchanged artifact skipped for %s", source_url)
-                return existing
-        except Exception as exc:
-            logger.warning("Failed to read existing manifest for %s: %s", source_url, exc)
 
     if dry_run:
         logger.info("Dry-run: skipping writes for %s", source_url)

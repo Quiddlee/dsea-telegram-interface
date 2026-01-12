@@ -108,6 +108,24 @@ def save_document_record(
     return row[0] if row else None
 
 
+def get_document_checksum(*, source_type: str, source_id: str) -> str | None:
+    conn = get_connection()
+
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT checksum
+            FROM documents
+            WHERE source_type = %s AND source_id = %s
+            LIMIT 1;
+            """,
+            (source_type, source_id),
+        )
+        row = cur.fetchone()
+
+    return row[0] if row else None
+
+
 def enqueue_chunk_document_job(document_id: str) -> None:
     conn = get_connection()
 
