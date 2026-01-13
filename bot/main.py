@@ -181,7 +181,7 @@ def bot_message(message):
                 f"{AI_CORE_URL.rstrip('/')}/agent/chat",
                 json={"message": msg.text, "telegramId": telegram_id},
                 headers={"x-ai-core-token": AI_CORE_INTERNAL_TOKEN},
-                timeout=20,
+                timeout=120,
             )
             resp.raise_for_status()
             send_ai_reply(msg, resp.text)
